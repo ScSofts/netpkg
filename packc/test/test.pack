@@ -1,0 +1,19 @@
+private Tlv(body:pack, cmd:hex){
+    hex  $cmd
+    u16  $$Len(body)
+    pack $body
+}
+
+@Tlv([90 03])
+pack tlv_0003{
+    hex  [00 00 00 00] # Wrap with '[]' can be simple to type.
+    u16  $$LenNext     
+    u32  $qqUin        # Means 'uint32 qqUin',qqUin is an arguement
+    u32  $$TimeStamp   # $$TimeStamp is inner variable.
+    
+    u32  0
+    bin  $$RandBin(4)
+
+    u32 $$LenNext + 4
+    str "Hello World" + $s
+}

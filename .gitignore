@@ -1,0 +1,6 @@
+.vscode
+*/.antlr/
+build/
+compile_commands.json
+.cache
+dist

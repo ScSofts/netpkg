@@ -1,0 +1,334 @@
+#pragma once
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <functional>
+#include <memory.h>
+
+namespace pack {
+    using byte = unsigned char;
+    class Bin;
+    class Hex;
+    class Pack;
+    class UnPack;
+
+    
+    class Bin{
+    public:
+        Bin(std::vector<byte> bytes = {}):bytes(bytes){
+
+        }
+
+        Bin & operator=(std::vector<byte> bytes){
+            this->bytes = bytes;
+            return *this;
+        }
+
+        std::vector<byte> Get()const{
+            return bytes;
+        }
+
+        std::vector<byte> &Get(){
+            return bytes;
+        }
+
+        size_t GetLen()const{
+            return bytes.size();
+        }
+
+        static Bin FromHex(Hex hex);
+        operator Hex()const;
+
+    protected:
+        std::vector<byte> bytes;
+    };
+    
+    class Hex{
+    public:
+        Hex(std::string hex):value(hex){
+            
+        }
+
+        operator Bin()const;
+    protected:
+        std::string value;
+    };
+
+    class Pack{
+    public:
+        Pack(){
+
+        }
+
+        void Clear(){
+            bytes.clear();
+        }
+
+        Bin GetAll()const{
+            return bytes;
+        }
+
+        void SetUInt8  (std::uint8_t  value);
+        void SetUInt16 (std::uint16_t value);
+        void SetUInt32 (std::uint32_t value);
+        void SetUInt64 (std::uint64_t value);
+
+        void SetInt8   (std::int8_t   value);
+        void SetInt16  (std::int16_t  value);
+        void SetInt32  (std::int32_t  value);
+        void SetInt64  (std::int64_t  value);
+
+        void SetPack   (Pack          value);
+        void SetBin    (Bin           value);
+        void SetHex    (Hex           value);
+        size_t GetLen()const{
+            return bytes.size();
+        }
+    protected:
+        std::vector<byte> bytes;
+    };
+
+
+    /// TODO: Finish this class.
+    class UnPack{
+
+    };
+
+    Bin Bin::FromHex(Hex hex){
+        return hex;
+    }
+
+    namespace utils
+    {
+        inline auto from(std::string raw){
+            class stringEx{
+            public:
+                stringEx(std::string value):value(value){
+                }
+                stringEx(const stringEx &) = default;
+                stringEx(stringEx &&) = default;
+                ~stringEx() = default;
+                stringEx & operator=(stringEx right){
+                    this->value = right;
+                    return *this;
+                }
+                bool endWith(std::string tail)const {
+                    return value.compare(value.size() - tail.size(), tail.size(), tail) == 0;
+                }
+                
+                bool startWith(std::string head)const {
+                    return value.compare(0, head.size(), head) == 0;
+                }
+
+                auto trim()
+                { 
+                    value.erase(0, value.find_first_not_of(" "));
+                
+                    value.erase(value.find_last_not_of(" ")+1);
+
+                    return stringEx(value);
+                }
+                
+                auto replace(std::string find, std::string replace){
+                    return stringEx(value.replace(value.find(find), find.size(), replace));
+                }
+
+                stringEx replaceAll(std::string find, std::string replace) // 把org_str 替换为rep_str; 
+                { 
+                    std::vector<stringEx>  delimVec = split(find); 
+                    if (delimVec.size() <= 0) 
+                    { 
+                        return *this; 
+                    } 
+                    std::string target(""); 
+                    std::vector<stringEx>::iterator it = delimVec.begin(); 
+                    for (; it < delimVec.end(); it++) 
+                    { 
+                        target = target + (*it).str() + replace; 
+                    } 
+                    target = stringEx(target).Left(target.length() - replace.length());
+                    return target; 
+                } 
+        
+
+                std::vector<stringEx> split(std::string delimeter)const{
+                    
+                    std::vector<stringEx> ret{};//use ret save the spilted reault
+                    if(value.empty())    //judge the arguments
+                    {
+                        return ret;
+                    }
+                    std::string::size_type pos_begin = value.find_first_not_of(delimeter);//find first element of srcstr
+
+                    std::string::size_type dlm_pos;//the delimeter postion
+                    std::string temp;              //use third-party temp to save splited element
+                    while(pos_begin != std::string::npos)//if not a next of end, continue spliting
+                    {
+                        dlm_pos = value.find(delimeter, pos_begin);//find the delimeter symbol
+                        if(dlm_pos != std::string::npos)
+                        {
+                            temp = value.substr(pos_begin, dlm_pos - pos_begin);
+                            pos_begin = dlm_pos + delimeter.length();
+                        }
+                        else
+                        {
+                            temp = value.substr(pos_begin);
+                            pos_begin = dlm_pos;
+                        }
+                        if(!temp.empty())
+                            ret.push_back({temp});
+                    }
+                    return ret;
+                }
+
+                operator std::string(){
+                    return  value;
+                }
+
+                std::string str(){
+                    return value;
+                }
+
+                stringEx Left(size_t num)const{
+                    if(num > value.length()) throw "Left out of range!";
+                    return value.substr(0,num);
+                }
+
+                stringEx Right(size_t num)const{
+                    if(num > value.length()) throw "Right out of range!";
+                    return value.substr(value.length() - num);
+                }
+
+                size_t find(std::string pattern)const{
+                    return value.find(pattern);
+                }
+
+                size_t rfind(std::string pattern)const{
+                    return value.rfind(pattern);
+                }
+
+                size_t length()const{
+                    return value.length();
+                }
+            protected:
+                std::string value;
+            };
+
+            return stringEx(raw);
+        }
+
+        struct Clear{
+            Clear(std::function<void(void)> clear):clear(clear){
+
+            }
+            ~Clear(){
+                clear();
+            }
+            std::function<void(void)> clear;
+        };
+
+        const bool isBigEdian(){
+            return *(const byte*)int(1) != 0x1;
+        }
+    }
+
+    Hex::operator Bin()const{
+        auto hex = utils::from(this->value).replaceAll(" ", "").replaceAll("\n", "").str();
+        auto hexCString = hex.c_str();
+
+        size_t length = hex.length() / 2;
+        byte *buffer = new byte[length + 2];
+        utils::Clear autoClearBuffer([buffer]{delete[] buffer;});
+        for(size_t i = 0; i< length ; i++){
+            sscanf(hexCString + 2 * i, "%2X", (unsigned int*)(buffer + i));
+        }
+        return Bin{{buffer, buffer + length}};
+    }
+
+    Bin::operator Hex()const{
+        std::string hexstr;
+        for(auto i : this->bytes){
+            static char buffer[4];
+            memset(buffer,0,4);
+            sprintf(buffer, "%2X ", i);
+            hexstr += buffer;
+        }
+        hexstr.pop_back();
+        return hexstr;
+    }
+
+    template<class T>
+    size_t len(){
+        return sizeof(T);
+    }
+    
+    template<class T>
+    size_t len(T value){
+        return sizeof(T);
+    }
+
+    template<>
+    size_t len<std::string>(std::string value){
+        return value.length();
+    }
+
+    template<>
+    size_t len<Bin>(Bin value){
+        return value.GetLen();
+    }
+
+    template<>
+    size_t len<Hex>(Hex value){
+        return Bin::FromHex(value).GetLen();
+    }
+
+    template<>
+    size_t len<Pack>(Pack pack){
+        return pack.GetLen();
+    }
+
+    
+    void Pack::SetUInt8  (std::uint8_t  value){
+
+    }
+    
+    void Pack::SetUInt16 (std::uint16_t value){
+
+    }
+
+    void Pack::SetUInt32 (std::uint32_t value){
+
+    }
+    
+    void Pack::SetUInt64 (std::uint64_t value){
+
+    }
+
+
+    void Pack::SetInt8   (std::int8_t   value){
+
+    }
+    
+    void Pack::SetInt16  (std::int16_t  value){
+
+    }
+
+    void Pack::SetInt32  (std::int32_t  value){
+
+    }
+    void Pack::SetInt64  (std::int64_t  value){
+
+    }
+
+    void Pack::SetPack   (Pack          value){
+
+    }
+
+    void Pack::SetBin    (Bin           value){
+
+    }
+    
+    void Pack::SetHex    (Hex           value){
+
+    }
+};
